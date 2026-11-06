@@ -2,11 +2,12 @@
 import numpy as np
 from copy import deepcopy
 from  itertools import combinations
+from typing import List, Tuple, Dict
 if __name__ == '__main__':
     from random import randint
     from timeit import default_timer as timer
-
-def solve_tsp(p: list[dict], s: dict, t: dict) -> tuple[float, list[int]]:
+def solve_tsp(p: List[Dict], s: Dict, t: Dict) -> Tuple[float, List[int]]:
+#def solve_tsp(p, s, t):
     all_nodes = deepcopy(p)
     all_nodes.insert(0, s)
     all_nodes.append(t)
@@ -49,7 +50,7 @@ def solve_tsp(p: list[dict], s: dict, t: dict) -> tuple[float, list[int]]:
 
     return distance, id_path
 
-def create_dist_matrix(p: list[dict]) -> np.matrix:
+def create_dist_matrix(p: List[Dict]) -> np.matrix:
     n = len(p)
     m = np.matrix(np.zeros([n, n]))
     for i in range(n):
@@ -60,7 +61,7 @@ def create_dist_matrix(p: list[dict]) -> np.matrix:
 
     return m
 
-def dist(p1: dict, p2: dict) -> float:
+def dist(p1: Dict, p2: Dict) -> float:
     return np.sqrt((p1["position"][0] - p2["position"][0])**2 + (p1["position"][1] - p2["position"][1])**2 + (p1["position"][2] - p2["position"][2])**2)
 
 
