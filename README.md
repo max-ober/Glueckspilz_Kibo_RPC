@@ -1,6 +1,6 @@
 # Installation
 1. Clone this repository to somewhere on your device
-2. Download the KRPC7 Simulator from [here](https://jaxa.krpc.jp/download) and unpack it somewhere
+2. Download the KRPC7 Simulator [here](https://jaxa.krpc.jp/download) and unpack it somewhere
 3. Create an empty text file called `sync_config.txt` in the root of the cloned project, the same location `watcher.py` is in
 4. Add these lines to `sync_config.txt` and change them accordingly
 ```
@@ -15,5 +15,5 @@ This script will keep the contents of the simulators `krpc_user` folder synchron
 5. Launch `watcher.py`
 6. Start the simulator by launching `krpc7th-simulator/simulator.sh`
 
-# Software
-TBD
+# Documentation
+This projects documentation can be found in the [Wiki](https://github.com/max-ober/Glueckspilz_Kibo_RPC/wiki).
