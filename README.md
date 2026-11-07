@@ -12,6 +12,8 @@ DEST_DIR=/home/yourname/documents/krpc7th-simulator/users/catkin_ws/src/krpc_use
 ```
 
 This script will keep the contents of the simulators `krpc_user` folder synchronized to that of the local git repository
+
+
 5. Launch `watcher.py`
 6. Start the simulator by launching `krpc7th-simulator/simulator.sh`
 
