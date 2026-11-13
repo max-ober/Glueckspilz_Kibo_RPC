@@ -70,11 +70,14 @@ find_package(OpenCV REQUIRED)
 # )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
+add_action_files(
+  DIRECTORY
+  action
+  FILES
+  move_to_target.action
+  nudge_to_target.action
+  look_at_aruco.action
+)
 
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(

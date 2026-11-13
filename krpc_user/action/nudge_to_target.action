@@ -1,0 +1,15 @@
+# Request
+geometry_msgs/pose target
+geometry_msgs/pose lvl1
+geometry_msgs/pose lvl2
+geometry_msgs/pose lvl3
+---
+# Result
+bool success
+geometry_msgs/pose delta
+geometry_msgs/pose position
+---
+# Feedback
+geometry_msgs/pose delta
+int32 best_lvl_pointing
+int32 best_lvl_position
