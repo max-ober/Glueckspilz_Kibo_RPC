@@ -6,8 +6,8 @@ geometry_msgs/Quaternion lvl3
 ---
 # Result
 bool success
-geometry_msgs/pose delta
-geometry_msgs/pose position
+geometry_msgs/Pose delta
+geometry_msgs/Pose position
 ---
 # Feedback
 geometry_msgs/Quaternion delta

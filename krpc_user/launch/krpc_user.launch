@@ -31,4 +31,6 @@
   </node>
 
   <node name="krpc_user" pkg="krpc_user" type="$(arg team_user_script)" output="screen" />
+
+  <node name="mover" pkg="krpc_user" type="mover.py" output="screen"/>
 </launch>

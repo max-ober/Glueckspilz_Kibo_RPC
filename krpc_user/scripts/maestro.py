@@ -3,6 +3,7 @@ import rospy
 import subprocess
 import actionlib
 from copy import deepcopy
+from geometry_msgs.msg import Pose
 from platform_msgs.msg import UserLogic
 from std_msgs.msg import String
 from ib2_msgs.msg import Navigation
@@ -10,9 +11,12 @@ from krpc_ib2_msgs.srv import MissionStart, MissionFinished, CheckPoints
 from platform_msgs.srv import StopProcessingUserNode, StopProcessingUserNodeResponse
 from ib2_msgs.msg import CtlCommandAction, CtlCommandGoal, CtlCommandResult, CtlStatusType
 from pathfinder import solve_tsp
+from krpc_user.msg import move_to_targetAction, move_to_targetGoal
 from pprint import pprint
 import json
 from typing import List, Tuple, Dict
+
+
 
 
 class Maestro:
@@ -59,7 +63,72 @@ class Maestro:
         rospy.loginfo(path_length)
         rospy.loginfo(path)
 
-        #TODO: ADD MOVEMENT LOGIC HERE
+               # debugging suspect 0 for error
+        rospy.loginfo("Checkpoint dictionary keys: %s",
+              list(self.cp_dict.keys()))
+
+        rospy.loginfo("Calculated path: %s", path)
+
+        rospy.loginfo("Goal ID: %s", self.goal_id)
+
+        # MOVEMENT LOGIC HERE
+
+        mover = actionlib.SimpleActionClient(
+            'move_to_target',
+            move_to_targetAction
+        )
+
+        if not mover.wait_for_server(rospy.Duration(30)):
+            rospy.logerr("MoveToTarget Action Server not available")
+            return
+
+        # follow calculated path to traverse all checkpoints
+        for checkpoint_id in path:
+
+            
+            checkpoint = self.cp_dict[checkpoint_id]
+
+            # get pose of checkpoint
+            pose = Pose()
+
+            pose.position.x = checkpoint["position"][0]
+            pose.position.y = checkpoint["position"][1]
+            pose.position.z = checkpoint["position"][2]
+
+            pose.orientation.x = checkpoint["attitude"]["quaternion"][0]
+            pose.orientation.y = checkpoint["attitude"]["quaternion"][1]
+            pose.orientation.z = checkpoint["attitude"]["quaternion"][2]
+            pose.orientation.w = checkpoint["attitude"]["quaternion"][3]
+
+            goal = move_to_targetGoal()
+            goal.target = pose
+
+            rospy.loginfo("Moving to checkpoint %s", checkpoint_id)
+
+            mover.send_goal(goal)
+
+            # wait until move is finished
+            finished = mover.wait_for_result(rospy.Duration(90))
+
+            if not finished:
+                rospy.logerr("Movement timed out at checkpoint %s", checkpoint_id)
+                mover.cancel_goal()
+                return
+
+            result = mover.get_result()
+
+            if result is None or not result.success:
+                rospy.logerr("Movement failed at checkpoint %s", checkpoint_id)
+                return
+
+            rospy.loginfo(
+                "Reached checkpoint %s. Distance: %s",
+                checkpoint_id,
+                result.distance
+            )
+
+        rospy.loginfo("All checkpoints completed")
+
 
     def __callback_start(self, msg):
             if self.__started:

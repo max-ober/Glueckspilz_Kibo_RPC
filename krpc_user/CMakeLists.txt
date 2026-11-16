@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   actionlib
   actionlib_msgs
+  message_generation
   tf
 )
 
@@ -80,10 +81,13 @@ add_action_files(
 )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   ib2_msgs#   platform_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  actionlib_msgs
+  geometry_msgs
+  std_msgs
+  # ib2_msgs#   platform_msgs#   std_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -115,6 +119,7 @@ add_action_files(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
+  CATKIN_DEPENDS message_runtime actionlib_msgs geometry_msgs
 #  INCLUDE_DIRS include
 #  LIBRARIES user_template
 #  CATKIN_DEPENDS ib2_msgs platform_msgs rospy std_msgs
@@ -136,6 +141,8 @@ include_directories(
 catkin_install_python(PROGRAMS
   scripts/user_template.py
   scripts/maestro.py
+  scripts/mover.py
+  scripts/pathfinder.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

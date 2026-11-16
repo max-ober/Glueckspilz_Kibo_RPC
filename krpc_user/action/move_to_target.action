@@ -1,10 +1,10 @@
 # Request
-geometry_msgs/pose target
+geometry_msgs/Pose target
 ---
 # Result
 bool success
 float32 distance
-geometry_msgs/pose position
+geometry_msgs/Pose position
 ---
 # Feedback
 float32 distance

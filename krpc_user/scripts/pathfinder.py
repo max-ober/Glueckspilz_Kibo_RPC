@@ -45,7 +45,11 @@ def solve_tsp(p: List[Dict], s: Dict, t: Dict) -> Tuple[float, List[int]]:
 
     path.append(0)
     id_path = []
-    for n in list(reversed(path)):
+
+    for n in reversed(path):
+        if n == 0:
+            continue
+
         id_path.append(all_nodes[n]["checkpoint_id"])
 
     return distance, id_path
