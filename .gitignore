@@ -280,3 +280,4 @@ CATKIN_IGNORE
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/c++,ros,python,visualstudiocode
+*:Zone.Identifier
