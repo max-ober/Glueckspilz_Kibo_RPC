@@ -10,11 +10,13 @@ from ib2_msgs.msg import Navigation
 from krpc_ib2_msgs.srv import MissionStart, MissionFinished, CheckPoints
 from platform_msgs.srv import StopProcessingUserNode, StopProcessingUserNodeResponse
 from ib2_msgs.msg import CtlCommandAction, CtlCommandGoal, CtlCommandResult, CtlStatusType
-from pathfinder import solve_tsp
 from krpc_user.msg import move_to_targetAction, move_to_targetGoal
-from pprint import pprint
+from krpc_ib2_msgs.msg import CheckpointPassedAction
 import json
 from typing import List, Tuple, Dict
+
+from pathfinder import solve_tsp
+from reporter import pass_checkpoint, send_final_report
 
 
 
@@ -31,9 +33,11 @@ class Maestro:
         self.__stop_processing_server = rospy.Service('/ib2_user/stop', StopProcessingUserNode, self.__stop_processing) # DO NOT REMOVE THIS LINE
         self.__mission_start = rospy.ServiceProxy('/event/mission_start', MissionStart)
         self.raw_checkpoints = rospy.ServiceProxy('/mission/get_checkpoints', CheckPoints)
+        self.__mission_finished_service = rospy.ServiceProxy('/event/mission_finished', MissionFinished)
 
         # === Actions ===
         self.__command = actionlib.SimpleActionClient('/ctl/command', CtlCommandAction)
+        self.__checkpoint_client = actionlib.SimpleActionClient('/event/checkpoint_passed', CheckpointPassedAction)
         
         
         self.__started = False
@@ -127,7 +131,18 @@ class Maestro:
                 result.distance
             )
 
-        rospy.loginfo("All checkpoints completed")
+            # TODO: add some logic to wait 1 second before trying to pass
+
+            # try to pass checkpoint
+            passed = pass_checkpoint(checkpoint_id, self.__checkpoint_client)
+            if not passed:
+                rospy.logwarn(f"Failed checkpoint {checkpoint_id}")
+                # TODO: add handling when we fail checkpoint
+
+        rospy.loginfo("All checkpoints completed, sending final report")
+        result = send_final_report(self.__mission_finished_service)
+        if result: rospy.loginfo(f"Successfully finished the mission!")
+        else: rospy.logwarn("Mission did not finish successfully")
 
 
     def __callback_start(self, msg):
@@ -193,6 +208,8 @@ class Maestro:
         res = self.__mission_start()
         rospy.loginfo('mission_start result: success=%s message=%s', res.success, res.message)
         return res.success
+
+    
 
 def summon_maestro():
     subprocess.Popen(["rosrun", "krpc_user" ,"maestro.py"])
