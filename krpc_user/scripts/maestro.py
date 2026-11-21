@@ -117,13 +117,13 @@ class Maestro:
             if not finished:
                 rospy.logerr("Movement timed out at checkpoint %s", checkpoint_id)
                 mover.cancel_goal()
-                return
+                continue
 
             result = mover.get_result()
 
             if result is None or not result.success:
                 rospy.logerr("Movement failed at checkpoint %s", checkpoint_id)
-                return
+                continue
 
             rospy.loginfo(
                 "Reached checkpoint %s. Distance: %s",
@@ -137,7 +137,7 @@ class Maestro:
             passed = pass_checkpoint(checkpoint_id, self.__checkpoint_client)
             if not passed:
                 rospy.logwarn(f"Failed checkpoint {checkpoint_id}")
-                # TODO: add handling when we fail checkpoint
+                continue
 
         rospy.loginfo("All checkpoints completed, sending final report")
         result = send_final_report(self.__mission_finished_service)
