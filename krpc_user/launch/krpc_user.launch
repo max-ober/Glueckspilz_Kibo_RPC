@@ -30,7 +30,9 @@
     <param name="checkpoint_source_path" value="$(arg checkpoint_source_path)" />
   </node>
 
-  <node name="krpc_user" pkg="krpc_user" type="$(arg team_user_script)" output="screen" />
+  <node name="krpc_user" pkg="krpc_user" type="$(arg team_user_script)" output="screen">
+    <param name="hold_time" value="1.2"/>
+  </node>
 
   <node name="mover" pkg="krpc_user" type="mover.py" output="screen"/>
 </launch>

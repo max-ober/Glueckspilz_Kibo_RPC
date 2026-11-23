@@ -47,9 +47,26 @@ class Maestro:
     def spin(self):
         rospy.spin()
 
+    def __hold_position(self, seconds: float) -> bool:
+        """Stay put for `seconds`. Returns False if ROS is shutting down."""
+        rospy.loginfo("Holding position for %.2fs", seconds)
+        end = rospy.Time.now() + rospy.Duration.from_sec(seconds)
+        while rospy.Time.now() < end:
+            if rospy.is_shutdown():
+                return False
+            rospy.sleep(0.05)
+        return True
+
     def run(self, msg):
         if not self.__notify_mission_start():
             return
+
+        # Rulebook: all 3 conditions must hold for 1 s. Add a small margin
+        # for settling and for the judge's timer start.
+        hold_time = rospy.get_param('~hold_time', 1.2)
+        retry_hold = rospy.get_param('~retry_hold', 0.5)
+        max_pass_retries = rospy.get_param('~max_pass_retries', 2)
+
         self.cp_list, self.cp_dict, self.goal_id  = self.read_checkpoints()
 
         #find best path - start point taken from programming manual
@@ -67,7 +84,6 @@ class Maestro:
         rospy.loginfo(path_length)
         rospy.loginfo(path)
 
-               # debugging suspect 0 for error
         rospy.loginfo("Checkpoint dictionary keys: %s",
               list(self.cp_dict.keys()))
 
@@ -131,13 +147,26 @@ class Maestro:
                 result.distance
             )
 
-            # TODO: add some logic to wait 1 second before trying to pass
+            # Hold position for at least 1s
+            if not self.__hold_position(hold_time):
+                return
 
-            # try to pass checkpoint
+            # Report the checkpoint; retry a bounded number of times, each time 
+            # holding a little longer
             passed = pass_checkpoint(checkpoint_id, self.__checkpoint_client)
+            retries = 0
+            while not passed and retries < max_pass_retries:
+                retries += 1
+                rospy.logwarn("Checkpoint %s not passed, retry %d/%d",
+                              checkpoint_id, retries, max_pass_retries)
+                if not self.__hold_position(retry_hold):
+                    return
+                passed = pass_checkpoint(checkpoint_id, self.__checkpoint_client)
+
             if not passed:
-                rospy.logwarn(f"Failed checkpoint {checkpoint_id}")
+                rospy.logwarn("Failed checkpoint %s", checkpoint_id)
                 continue
+            rospy.loginfo("Checkpoint %s passed", checkpoint_id)
 
         rospy.loginfo("All checkpoints completed, sending final report")
         result = send_final_report(self.__mission_finished_service)
