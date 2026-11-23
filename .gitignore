@@ -4,6 +4,9 @@
 #watcher.py
 sync_config.txt
 
+#tester.py
+report_*.txt
+
 ### C++ ###
 # Prerequisites
 *.d
