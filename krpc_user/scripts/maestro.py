@@ -67,7 +67,13 @@ class Maestro:
         retry_hold = rospy.get_param('~retry_hold', 0.5)
         max_pass_retries = rospy.get_param('~max_pass_retries', 2)
 
-        self.cp_list, self.cp_dict, self.goal_id  = self.read_checkpoints()
+        self.cp_list = []
+        for _ in range(5):
+            self.cp_list, self.cp_dict, self.goal_id = self.read_checkpoints()
+            if len(self.cp_list) > 0: break
+
+        # abort if we couldnt get any checkpoints
+        if len(self.cp_list) == 0: return
 
         #find best path - start point taken from programming manual
         start_point = {
@@ -81,15 +87,7 @@ class Maestro:
         cp_without_goal = deepcopy(self.cp_list)
         cp_without_goal.remove(goal_cp)
         path_length, path = solve_tsp(cp_without_goal, start_point, goal_cp)
-        rospy.loginfo(path_length)
-        rospy.loginfo(path)
-
-        rospy.loginfo("Checkpoint dictionary keys: %s",
-              list(self.cp_dict.keys()))
-
-        rospy.loginfo("Calculated path: %s", path)
-
-        rospy.loginfo("Goal ID: %s", self.goal_id)
+        rospy.loginfo(f"Calculated path: {path} \nTotal path length: {path_length} \nGoal CP ID: {self.goal_id}")
 
         # MOVEMENT LOGIC HERE
 
@@ -147,21 +145,25 @@ class Maestro:
                 result.distance
             )
 
-            # Hold position for at least 1s
-            if not self.__hold_position(hold_time):
-                return
 
             # Report the checkpoint; retry a bounded number of times, each time 
-            # holding a little longer
-            passed = pass_checkpoint(checkpoint_id, self.__checkpoint_client)
+            passed = False
             retries = 0
             while not passed and retries < max_pass_retries:
-                retries += 1
-                rospy.logwarn("Checkpoint %s not passed, retry %d/%d",
-                              checkpoint_id, retries, max_pass_retries)
-                if not self.__hold_position(retry_hold):
+                # ---===--- o.o
+                # TODO: look at aruco (Ming)
+                # ---===---
+
+                # Hold position for at least 1s or 0.5s when retrying
+                if retries == 0: t = hold_time
+                else: t = retry_hold # holding a little longer
+                if not self.__hold_position(t):
                     return
+                        
                 passed = pass_checkpoint(checkpoint_id, self.__checkpoint_client)
+                if not passed: 
+                    rospy.logwarn("Checkpoint %s not passed, retry %d/%d", checkpoint_id, retries, max_pass_retries)
+                retries += 1
 
             if not passed:
                 rospy.logwarn("Failed checkpoint %s", checkpoint_id)
