@@ -12,13 +12,14 @@ import actionlib
 import rospy
 from geometry_msgs.msg import Pose, PoseStamped
 from ib2_msgs.msg import (CtlCommandAction, CtlCommandGoal, CtlCommandResult,
-                          CtlStatusType, Navigation)
+                          CtlStatus, CtlStatusType, Navigation)
 from krpc_user.msg import (move_to_targetAction, move_to_targetFeedback,
                            move_to_targetResult)
 
 NAV_TOPIC = '/sensor_fusion/navigation'
 CTL_ACTION = '/ctl/command'
 SERVER_NAME = 'move_to_target'
+STATUS_TOPIC = '/ctl/status'
 
 
 class Mover:
@@ -32,7 +33,9 @@ class Mover:
         self.__pose = None  # latest Pose from navigation
 
         rospy.Subscriber(NAV_TOPIC, Navigation, self.__cb_nav, queue_size=1)
-
+        
+        self.__ctl_state = None
+        rospy.Subscriber(STATUS_TOPIC, CtlStatus, self.__cb_status, queue_size=1)
         self.__ctl = actionlib.SimpleActionClient(CTL_ACTION, CtlCommandAction)
         rospy.loginfo('mover: waiting for %s', CTL_ACTION)
         if not self.__ctl.wait_for_server(rospy.Duration(self.__server_wait)):
@@ -52,6 +55,18 @@ class Mover:
     def __get_pose(self):
         with self.__pose_lock:
             return self.__pose
+
+    def __cb_status(self, msg):
+        self.__ctl_state = msg.type.type   
+
+    def __wait_for_hold(self, timeout=2.0):
+        end = rospy.Time.now() + rospy.Duration(timeout)
+        while not rospy.is_shutdown() and rospy.Time.now() < end:
+            if self.__ctl_state in (CtlStatusType.KEEP_POSE,
+                                    CtlStatusType.STOP_MOVING):
+                return True
+            rospy.sleep(0.05)
+        return False
 
     @staticmethod
     def __distance(a, b):
@@ -105,11 +120,17 @@ class Mover:
                 self.__finish(False, target, preempted=True)
                 return
 
-            if self.__ctl.wait_for_result(rospy.Duration(0.0)):
+            if self.__ctl.wait_for_result(rospy.Duration(0.1)):
                 res = self.__ctl.get_result()
                 ok = res is not None and res.type == CtlCommandResult.TERMINATE_SUCCESS
                 code = None if res is None else res.type
-                rospy.loginfo('mover: ctl result code=%s success=%s', code, ok)
+                rospy.loginfo('mover: ctl result code=%s success=%s state=%s',
+                            code, ok, self.__ctl_state)
+                held = self.__wait_for_hold()
+                rospy.loginfo('mover: after wait, held=%s state=%s', held, self.__ctl_state)
+                if ok and not self.__wait_for_hold():
+                    rospy.logwarn('mover: no KEEP_POSE/STOP_MOVING after success (state=%s)',
+                                self.__ctl_state)
                 self.__finish(ok, target)
                 return
 
